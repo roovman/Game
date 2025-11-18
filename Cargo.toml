@@ -1,0 +1,16 @@
+# Cargo.toml
+
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ratatui = "0.29.0" 
+
+crossterm = "0.29.0" 
+
+color-eyre = "0.6.2" 
+glam = "0.30.9"
+
+
