@@ -94,7 +94,7 @@ pub fn ui<B: Backend>(f: &mut Frame, game_state: &GameState) {
     
     // 2. Відображення Статусу/Дебагу
     let status_block = Block::default()
-        .title("STATUS / DEBUG")ии
+        .title("STATUS / DEBUG")
         .borders(Borders::ALL)
         .style(Style::default().fg(Color::Green));
 
