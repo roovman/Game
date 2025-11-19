@@ -1,8 +1,11 @@
-// src/map/map.rs (ОЧИЩЕНА ВЕРСІЯ)
+// src/map/map.rs (ОЧИЩЕНА ВЕРСІЯ
+
+use serde::{Serialize, Deserialize};
 
 use super::tile::{Tile, TileType};
 use super::position::MapPosition; 
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Map {
     pub width: i32, 
     pub height: i32,
@@ -22,18 +25,18 @@ impl Map {
     // --- Приватні Методи ---
     
     /// Приватна функція: Перетворення 2D-координат (MapPosition) на 1D-індекс.
-    fn get_index(&self, pos: &MapPosition) -> Option<usize> {
-        let x = pos.x();
-        let y = pos.y();
+    // fn get_index(&self, pos: &MapPosition) -> Option<usize> {
+    //     let x = pos.x();
+    //     let y = pos.y();
         
-        if x >= 0 && x < self.width && y >= 0 && y < self.height {
-            // Формула: index = y * width + x
-            let index = (y * self.width + x) as usize;
-            Some(index)
-        } else {
-            None 
-        }
-    }
+    //     if x >= 0 && x < self.width && y >= 0 && y < self.height {
+    //         // Формула: index = y * width + x
+    //         let index = (y * self.width + x) as usize;
+    //         Some(index)
+    //     } else {
+    //         None 
+    //     }
+    // }
 
     /// Приватна функція: Перетворення 2D-координат (i32) на 1D-індекс.
     fn get_index_i32(&self, x: i32, y: i32) -> Option<usize> {

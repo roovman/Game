@@ -1,8 +1,8 @@
 // src/map/tile.rs (ОЧИЩЕНО)
 
 use crate::specials::PowerupType;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use serde::{Serialize, Deserialize};
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TileType {
     /// Звичайна прохідна клітинка
     WalkableGeneric, 
@@ -10,7 +10,7 @@ pub enum TileType {
     Wall,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tile {
     pub tile_type: TileType,
     pub symbol: char,

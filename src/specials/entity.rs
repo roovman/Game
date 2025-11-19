@@ -1,20 +1,24 @@
-// src/specials/entity.rs
+use crate::map::position::MapPosition; 
+use serde::{Serialize, Deserialize};
+pub type EntityID = u32;
 
-use crate::map::position::MapPosition; // Абстракція позиції
-
-
-/// Базова структура, що представляє будь-яку рухому/інтерактивну сутність у світі.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Entity {
-    pub id: u32, 
-    pub position: MapPosition, 
-    pub health: u32,
+    pub id: EntityID,
+    pub position: MapPosition,
     pub symbol: char,
+    pub health: u32,
+    pub is_selected: bool, 
 }
 
 impl Entity {
-    pub fn new(id: u32, position: MapPosition, symbol: char) -> Self {
-        // ...
-        Entity { id, position, health: 100, symbol }
+    pub fn new(id: EntityID, position: MapPosition, symbol: char) -> Self {
+        Entity { 
+            id, 
+            position, 
+            symbol, 
+            health: 100,
+            is_selected: false,
+        }
     }
 }

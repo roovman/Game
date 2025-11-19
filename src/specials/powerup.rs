@@ -1,7 +1,7 @@
 // src/specials/powerup.rs
-
+use serde::{Serialize,Deserialize};
 // Це те, на що натякав наш PowerupTypeID! 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PowerupType {
     None,
     HealingPotion,
@@ -31,6 +31,4 @@ impl PowerupType {
         use std::mem;
         mem::replace(self, PowerupType::None)
     }
-     // Метод, який інкапсулює логіку дії
-    // Пізніше: fn apply_effect(&self, target: &mut Entity)
 }
