@@ -3,13 +3,17 @@
 use crate::map::position::MapPosition; 
 use serde::{Serialize, Deserialize};
 pub type EntityID = u32;
-
+// --- CONSTANTS ---
+pub const MOVE_COST: u32 = 1;
+pub const ATTACK_COST: u32 = 2;
 // --- EntityStatus (Private, Unchanged) ---
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 struct EntityStatus{
     position: MapPosition, 
     health: u32,      
-    energy: u32,      
+    energy: u32,
+    damage: u32,       
+    attack_range: u32,    
     team: u32,         
     stunned_for_turns: u32, 
     is_selected: bool, 
@@ -40,11 +44,20 @@ impl Entity {
         array
     }
 
-    fn new_status(position: MapPosition, team: u32, max_health: u32, max_energy: u32) -> EntityStatus {
+    fn new_status(
+        position: MapPosition, 
+        team: u32, 
+        max_health: u32, 
+        max_energy: u32,
+        damage: u32,      
+        attack_range: u32
+    ) -> EntityStatus {
         EntityStatus { 
             position,
             health: max_health,  
-            energy: max_energy,  
+            energy: max_energy,
+            damage,
+            attack_range,  
             team, 
             stunned_for_turns: 0, 
             is_selected: false,
@@ -59,7 +72,9 @@ impl Entity {
         position: MapPosition,
         team: u32, 
         max_health: u32, 
-        max_energy: u32
+        max_energy: u32,
+        damage: u32,          
+        attack_range: u32
     ) -> Self {
         Entity { 
             id, 
@@ -71,7 +86,9 @@ impl Entity {
                 position,
                 team,
                 max_health,
-                max_energy
+                max_energy,
+                damage,
+                attack_range
             ),
         }
     }
@@ -150,12 +167,15 @@ impl Entity {
     pub fn is_dead(&self) -> bool {
         self.status.health == 0
     }
+  
+    pub fn damage(&self) -> u32 { self.status.damage }
+
+    pub fn attack_range(&self) -> u32 { self.status.attack_range }
 
     /// Checks if the entity has enough energy to perform an action cost.
     pub fn can_act(&self, cost: u32) -> bool {
         self.is_active() && self.status.energy >= cost
     }
-
 
     // =========================================================================
     //                           MUTABLE OPERATIONS
@@ -187,6 +207,7 @@ impl Entity {
             self.status.stunned_for_turns -= 1;
         }
     }
+    
     
     /// Attempts to consume energy for an action. Returns true if successful.
     pub fn consume_energy(&mut self, cost: u32) -> bool {

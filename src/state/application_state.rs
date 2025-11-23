@@ -34,8 +34,10 @@ impl ApplicationState {
                                 '@', 
                                 String::from("Player"),
                                 100, 
-                                5,   
-                                1,   
+                                5,
+                                25,
+                                5,     
+                                1,  
                                 false 
                             );
                             self.state = AppState::Simulation(GameMode::new(ws));
@@ -68,8 +70,7 @@ impl ApplicationState {
                     Action::GameClick { pos } => game.handle_click(pos),
                     // NEW: Route menu clicks to the mode's menu handler
                     Action::GameMenuClick { screen_x, screen_y } => { 
-                        // Note: GameMode::handle_menu_click is still TBD
-                        game.debug_message = format!("Menu click received at ({}, {})", screen_x, screen_y);
+                        game.handle_menu_click(screen_x, screen_y);
                     },
                     _ => {}
                 }

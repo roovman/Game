@@ -1,5 +1,6 @@
 // src/state/modes/editor.rs
 
+
 // --- IMPORTS ---
 use super::super::world_state::WorldState; 
 use super::super::actions::BuildTool;
@@ -55,8 +56,10 @@ impl EditorMode {
                     'E', // Editor defaults to 'E' for enemy/entity
                     String::from("Editor Unit"),
                     50,  // Smaller health
-                    3,   // Smaller energy
-                    2,   // Team 2 (Enemy)
+                    3,
+                    25,
+                     5,   // Smaller energy
+                    1,   // Team 2 (Enemy)
                     false // Not AI (for now, easy to change later)
                 ) {
                     self.debug_message = format!("Spawned Unit #{} (Team 2)", id);

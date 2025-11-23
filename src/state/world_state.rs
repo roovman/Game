@@ -44,6 +44,8 @@ impl WorldState {
         name: String, 
         max_health: u32, 
         max_energy: u32, 
+        damage: u32,
+        attack_range: u32,
         team: u32,       
         is_ai: bool,     
     ) -> Option<EntityID> {
@@ -62,7 +64,9 @@ impl WorldState {
             pos, 
             team, 
             max_health, 
-            max_energy
+            max_energy,
+            damage,
+            attack_range
         );
 
         if is_ai {

@@ -7,6 +7,8 @@ use crate::state::actions::{Action, MenuSelection};
 use crate::state::application_state::{ApplicationState, AppState};
 use crate::map::position::MapPosition;
 use color_eyre::Result;
+use ratatui::layout::Rect; 
+use crate::tui::draw::get_menu_rect;
 
 pub fn handle_input(app: &ApplicationState) -> Result<Option<Action>> {
     if event::poll(Duration::from_millis(16))? {
@@ -39,39 +41,38 @@ pub fn handle_input(app: &ApplicationState) -> Result<Option<Action>> {
             Event::Mouse(mouse) => {
                 let x = mouse.column as i32;
                 let y = mouse.row as i32;
+                let (term_width, term_height) = terminal::size()?;
 
                 // Handle Menu clicks first, as they are full-width
                 if matches!(app.state, AppState::Menu) {
                     if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {
-                        // Calculate approximate Y-coordinate ranges for menu buttons
-                        let (_, total_height) = terminal::size()?;
-                        let start_y = (total_height as f32 * 0.30).round() as i32 + 1; // Start Y of the first button block
                         
-                        match y {
-                            _ if y >= start_y && y < start_y + 3 => {
-                                // Y range for "1. BUILD MODE"
-                                return Ok(Some(Action::MenuSelect(MenuSelection::EnterBuildMode)));
-                            },
-                            _ if y >= start_y + 3 && y < start_y + 6 => {
-                                // Y range for "2. PLAY NEW GAME"
-                                return Ok(Some(Action::MenuSelect(MenuSelection::EnterPlayMode)));
-                            },
-                            _ if y >= start_y + 6 && y < start_y + 9 => {
-                                // Y range for "3. LOAD LAST MAP"
-                                return Ok(Some(Action::MenuSelect(MenuSelection::LoadLatest)));
-                            },
-                            _ if y >= start_y + 9 && y < start_y + 12 => {
-                                // Y range for "Q. QUIT APPLICATION"
-                                return Ok(Some(Action::QuitApp));
-                            },
+                        // 1. Reconstruct the full screen area
+                        let screen_area = Rect::new(0, 0, term_width, term_height);
+                        
+                        // 2. Get the EXACT Rect where the menu was drawn
+                        let menu_rect = get_menu_rect(screen_area);
+                        
+                        // 3. Check if click is inside the menu box horizontally
+                        // (Optional, but good for precision)
+                        if x < menu_rect.x as i32 || x > (menu_rect.x + menu_rect.width) as i32 {
+                            return Ok(None);
+                        }
+
+                        
+                        let relative_y = y - menu_rect.y as i32;
+
+                        match relative_y {
+                            3 => return Ok(Some(Action::MenuSelect(MenuSelection::EnterBuildMode))),
+                            4 => return Ok(Some(Action::MenuSelect(MenuSelection::EnterPlayMode))),
+                            5 => return Ok(Some(Action::MenuSelect(MenuSelection::LoadLatest))),
+                            7 => return Ok(Some(Action::QuitApp)), // Note: Index 6 + 1 for border
                             _ => {}
                         }
                     }
-                    return Ok(None); // Stop processing mouse events if we are in the menu
+                    return Ok(None); 
                 }
 
-                // --- 1. Determine the Sidebar Boundary (Logic for Editor/Simulation) ---
-                // ... (rest of the Editor/Simulation mouse routing logic remains here)
                 let sidebar_x_start = (terminal::size()?.0 as f32 * 0.75).round() as i32; 
                 let is_in_sidebar = x >= sidebar_x_start; 
                 let map_pos = MapPosition::new(x - 1, y - 1); 

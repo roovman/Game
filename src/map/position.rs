@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use glam::IVec2;
 use std::ops::{Add, Sub};
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)] 
 pub struct MapPosition(IVec2);
 
