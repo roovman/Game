@@ -17,10 +17,10 @@ impl Default for EntitySpec {
         EntitySpec {
             team: 1,          
             hp: 50,
-            energy: 50,
+            energy: 20,
             damage: 5,
-            range: 4,
-            is_ai: true,       
+            range: 2,
+            is_ai: false,       
             symbol: '@', 
         }
     }
