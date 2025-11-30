@@ -1,6 +1,6 @@
 # Telos 🦀
 
-**** Telos is a high-performance, modular simulation engine written in Rust.
+** Telos is a high-performance, modular simulation engine written in Rust.
 
 Designed with a focus on **Data-Oriented Design** and strict architectural boundaries, this project serves two purposes: a functional game engine with a TUI (Terminal User Interface) and a headless environment for training Reinforcement Learning (RL) agents.
 
