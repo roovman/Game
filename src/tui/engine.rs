@@ -5,9 +5,9 @@ use crossterm::execute;
 use color_eyre::Result;
 
 use crate::state::application_state::{ApplicationState, AppState};
+// Make sure to import GameMode if not impli
 use super::input::handle_input;
-use super::draw::app_ui;
-
+use super::draw::ui;
 
 pub fn run() -> Result<()> {
     let mut app = ApplicationState::new();
@@ -18,10 +18,19 @@ pub fn run() -> Result<()> {
     execute!(terminal.backend_mut(), EnterAlternateScreen, crossterm::event::EnableMouseCapture)?;
 
     while !matches!(app.state, AppState::Exiting) {
-        terminal.draw(|f| app_ui(f, &app))?;
+        
+        // 1. INPUT PHASE
         if let Some(action) = handle_input(&app)? {
             app.apply_action(action);
         }
+
+        // 2. UPDATE PHASE (
+        if let AppState::Game(mode) = &mut app.state {
+            mode.tick();
+        }
+
+        // 3. RENDER PHASE
+        terminal.draw(|f| ui(f, &app))?;
     }
 
     execute!(terminal.backend_mut(), LeaveAlternateScreen, crossterm::event::DisableMouseCapture)?;

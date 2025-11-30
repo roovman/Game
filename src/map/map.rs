@@ -1,7 +1,6 @@
 // src/map/map.rs
 
 use serde::{Serialize, Deserialize};
-
 use super::tile::{Tile, TileType};
 use super::position::MapPosition; 
 
@@ -13,105 +12,85 @@ pub struct Map {
 }
 
 impl Map {
-    /// Створює нову карту заданої ширини та висоти, ініціалізуючи її прохідними клітинками.
+    /// Створює нову карту заданої ширини та висоти, заповнену землею.
     pub fn new(width: i32, height: i32) -> Self {
-        let default_tile = Tile::new_walkable(); 
         let size = (width * height) as usize;
-        let tiles = vec![default_tile; size];
-        
-        Map { width, height, tiles }
+        Map { 
+            width, 
+            height, 
+            tiles: vec![Tile::walkable(); size] // Tile має derive(Clone), тому це працює швидко
+        }
     }
     
     // =========================================================================
-    //                            PRIVATE METHODS 
+    //                            ACCESSORS (READ)
     // =========================================================================
 
-    /// Приватна функція: Перетворення 2D-координат (i32) на 1D-індекс.
-    fn get_index_i32(&self, x: i32, y: i32) -> Option<usize> {
-        if x >= 0 && x < self.width && y >= 0 && y < self.height {
-            // Формула: index = y * width + x
-            let index = (y * self.width + x) as usize;
-            Some(index)
-        } else {
-            None 
-        }
+    /// Універсальний метод отримання тайла.
+    /// Приймає MapPosition, &MapPosition або (x, y).
+    pub fn get_tile<P: Into<MapPosition>>(&self, pos: P) -> Option<&Tile> {
+        let idx = self.pos_to_index(pos.into())?;
+        self.tiles.get(idx)
     }
-
-    // =========================================================================
-    //                            READ-ONLY ACCESSORS 
-    // =========================================================================
 
     /// Повертає ширину карти.
-    pub fn width(&self) -> i32 {
-        self.width
-    }
+    pub fn width(&self) -> i32 { self.width }
     
     /// Повертає висоту карти.
-    pub fn height(&self) -> i32 {
-        self.height
+    pub fn height(&self) -> i32 { self.height }
+
+    /// Швидкий доступ до сирого масиву тайлів (для рендерингу).
+    pub fn raw_tiles(&self) -> &[Tile] {
+        &self.tiles
     }
 
-    /// Отримує незмінну клітинку (Tile) за MapPosition.
-    pub fn get_tile(&self, pos: &MapPosition) -> Option<&Tile> {
-        self.get_tile_i32(pos.x(), pos.y())
+    /// Перевіряє, чи знаходиться позиція в межах карти.
+    pub fn in_bounds<P: Into<MapPosition>>(&self, pos: P) -> bool {
+        let p = pos.into();
+        p.x() >= 0 && p.x() < self.width && p.y() >= 0 && p.y() < self.height
     }
-
-    /// Отримує змінну клітинку (Tile) за MapPosition.
-    pub fn get_tile_mut(&mut self, pos: &MapPosition) -> Option<&mut Tile> {
-        self.get_tile_mut_i32(pos.x(), pos.y())
-    }
-    
-    /// Отримує незмінну клітинку за прямими i32 координатами.
-    pub fn get_tile_i32(&self, x: i32, y: i32) -> Option<&Tile> {
-        match self.get_index_i32(x, y) {
-            Some(index) => self.tiles.get(index),
-            None => None,
-        }
-    }
-
-    /// Отримує змінну клітинку за прямими i32 координатами.
-    pub fn get_tile_mut_i32(&mut self, x: i32, y: i32) -> Option<&mut Tile> {
-        match self.get_index_i32(x, y) {
-            Some(index) => self.tiles.get_mut(index),
-            None => None,
-        }
-    }
-
 
     // =========================================================================
-    //                            LOGIC METHODS 
+    //                            ACCESSORS (WRITE)
     // =========================================================================
 
-    /// Перевіряє, чи можна ходити на клітинку (без перешкод сутностями).
-    pub fn is_walkable(&self, pos: &MapPosition) -> bool {
-        if let Some(tile) = self.get_tile(pos) {
-            tile.is_walkable()
+    /// Отримує змінне посилання на тайл.
+    pub fn get_tile_mut<P: Into<MapPosition>>(&mut self, pos: P) -> Option<&mut Tile> {
+        let idx = self.pos_to_index(pos.into())?;
+        self.tiles.get_mut(idx)
+    }
+
+    // =========================================================================
+    //                            LOGIC & UTILS
+    // =========================================================================
+
+    /// Конвертує 2D координати в 1D індекс вектора з перевіркою меж.
+    fn pos_to_index(&self, pos: MapPosition) -> Option<usize> {
+        if self.in_bounds(pos) {
+            Some((pos.y() * self.width + pos.x()) as usize)
         } else {
-            false 
+            None
         }
     }
 
-    /// Перевіряє, чи можна стати на клітинку (прохідна і не зайнята сутністю).
-    pub fn is_standable(&self, pos: &MapPosition) -> bool {
-        if let Some(tile) = self.get_tile(pos) {
-            tile.is_standable()
-        } else {
-            false
-        }
+    /// Чи можна ходити (логіка тайла).
+    pub fn is_walkable<P: Into<MapPosition>>(&self, pos: P) -> bool {
+        self.get_tile(pos).map_or(false, |t| t.is_walkable())
     }
 
-    /// Будує стіну на заданій позиції, якщо клітинка прохідна.
-    pub fn build_wall(&mut self, pos: &MapPosition) -> bool {
+    /// Чи можна стояти (логіка тайла + відсутність інших сутностей).
+    pub fn is_standable<P: Into<MapPosition>>(&self, pos: P) -> bool {
+        self.get_tile(pos).map_or(false, |t| t.can_stand())
+    }
+
+    /// Будує стіну, якщо це можливо.
+    pub fn build_wall<P: Into<MapPosition>>(&mut self, pos: P) -> bool {
         if let Some(tile) = self.get_tile_mut(pos) {
             if tile.is_walkable() {
-                // Використовуємо інкапсульований метод Tile::set_type
-                tile.set_type(TileType::Wall);
-                true
-            } else {
-                false
+                tile.transform(TileType::Wall);
+                return true;
             }
-        } else {
-            false
         }
+        false
     }
 }

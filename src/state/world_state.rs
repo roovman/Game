@@ -1,5 +1,10 @@
-use crate::map::{map::Map, position::MapPosition};
-use crate::specials::{entity::{Entity, EntityID}, powerup::PowerupType};
+// src/state/world_state.rs
+
+use crate::map::map::Map;
+use crate::map::position::MapPosition;
+use crate::specials::entity::{Entity, EntityID};
+use crate::specials::powerup::PowerupType;
+use crate::map::tile::TileType; // Не забудь цей імпорт!
 use serde::{Serialize, Deserialize};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -9,6 +14,7 @@ pub struct WorldState {
     pub map: Map, 
     pub entities: Vec<Entity>, 
     pub next_entity_id: EntityID,
+    pub current_team_turn: u32,
 }
 
 impl WorldState {
@@ -17,6 +23,7 @@ impl WorldState {
             map: Map::new(100, 25),
             entities: Vec::new(),
             next_entity_id: 0,
+            current_team_turn: 1,
         }
     }
 
@@ -37,6 +44,30 @@ impl WorldState {
 
     // --- Logic Helpers ---
 
+    /// Додає готову сутність у світ і прив'язує її до карти.
+    pub fn add_entity(&mut self, entity: Entity) -> EntityID {
+        // 1. Запам'ятовуємо дані перед переміщенням (Move)
+        let id = entity.id();
+        let pos = entity.position();
+        
+        // 2. Додаємо у сховище
+        self.entities.push(entity);
+        
+        // 3. Оновлюємо карту (щоб тайл знав, що на ньому хтось є)
+        if let Some(tile) = self.map.get_tile_mut(pos) {
+            tile.set_entity(Some(id));
+        }
+        
+        id
+    }
+
+    pub fn next_id(&mut self) -> EntityID {
+        let id = self.next_entity_id;
+        self.next_entity_id += 1;
+        id
+    }
+
+    // Зручний хелпер для спавну (використовується в меню)
     pub fn spawn_entity(
         &mut self, 
         pos: MapPosition, 
@@ -50,13 +81,10 @@ impl WorldState {
         is_ai: bool,     
     ) -> Option<EntityID> {
         
-        // 1. Check if the tile is standable
-        if !self.map.is_standable(&pos) { return None; }
+        if !self.map.is_standable(pos) { return None; }
 
-        let id = self.next_entity_id;
-        self.next_entity_id += 1;
+        let id = self.next_id();
 
-        // 2. Use the new Entity::new constructor (already correct)
         let mut new_entity = Entity::new(
             id, 
             symbol, 
@@ -73,57 +101,46 @@ impl WorldState {
             new_entity.set_ai(true);
         }
 
-        self.entities.push(new_entity);
-
-        // 3. Update the map tile
-        if let Some(tile) = self.map.get_tile_mut(&pos) {
-            // FIX: Use set_entity_id mutator
-            tile.set_entity_id(Some(id));
-        }
-        Some(id)
+        Some(self.add_entity(new_entity))
     }
 
     pub fn build_wall(&mut self, pos: MapPosition) -> bool {
         self.clear_pos(pos);
-        self.map.build_wall(&pos)
+        self.map.build_wall(pos)
     }
 
     pub fn build_floor(&mut self, pos: MapPosition) {
         self.clear_pos(pos);
-        if let Some(tile) = self.map.get_tile_mut(&pos) {
-            tile.set_type(crate::map::tile::TileType::WalkableGeneric);
+        if let Some(tile) = self.map.get_tile_mut(pos) {
+            tile.transform(TileType::WalkableGeneric);
         }
     }
 
     fn clear_pos(&mut self, pos: MapPosition) {
-    if let Some(tile) = self.map.get_tile(&pos) {
-        // FIX: Use tile.entity_id() accessor
-        if let Some(id_to_clear) = tile.entity_id() { 
-            // CRITICAL FIX: The logic must REMOVE the entity with the matching ID.
-            // If the closure returns TRUE, the element is KEPT.
-            // We want to KEEP entities whose IDs are NOT the ID_TO_CLEAR.
-            self.entities.retain(|e| e.id() != id_to_clear); // Use e.id() accessor
+        // Спочатку знаходимо ID того, кого треба видалити
+        let id_to_remove = self.map.get_tile(pos).and_then(|t| t.entity_id());
+
+        // Якщо там хтось був -> видаляємо з вектора entities
+        if let Some(id) = id_to_remove {
+            self.entities.retain(|e| e.id() != id);
+        }
+
+        // Потім очищаємо сам тайл (включаючи паверапи)
+        if let Some(tile) = self.map.get_tile_mut(pos) {
+            tile.set_entity(None);
+            tile.set_powerup(PowerupType::None);
         }
     }
-    if let Some(tile) = self.map.get_tile_mut(&pos) {
-        // Correct, uses Tile mutators
-        tile.set_entity_id(None);
-        tile.set_powerup(PowerupType::None);
+
+    pub fn get_entity(&self, id: EntityID) -> Option<&Entity> {
+        self.entities.iter().find(|e| e.id() == id)
     }
-}
 
-pub fn get_entity(&self, id: EntityID) -> Option<&Entity> {
-    // FIX: Use e.id() accessor
-    self.entities.iter().find(|e| e.id() == id)
-}
+    pub fn get_entity_mut(&mut self, id: EntityID) -> Option<&mut Entity> {
+        self.entities.iter_mut().find(|e| e.id() == id)
+    }
 
-pub fn get_entity_mut(&mut self, id: EntityID) -> Option<&mut Entity> {
-    // FIX: Use e.id() accessor
-    self.entities.iter_mut().find(|e| e.id() == id)
-}
-
-pub fn get_entity_id_at(&self, pos: MapPosition) -> Option<EntityID> {
-    // Correct, uses tile.entity_id() accessor
-    self.map.get_tile(&pos).and_then(|t| t.entity_id()) 
-}
+    pub fn get_entity_id_at(&self, pos: MapPosition) -> Option<EntityID> {
+        self.map.get_tile(pos).and_then(|t| t.entity_id()) 
+    }
 }
